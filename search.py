@@ -1,7 +1,10 @@
 from github import Github
-import requests, base64, re
+import requests, base64, re, yaml
 
-g = Github('lpmi-13', 'khaleesi.16', timeout=200, per_page=30)
+with open("settings.yaml", 'r') as ymlfile:
+    cfg = yaml.load(ymlfile)
+
+g = Github(cfg['user'], cfg['password'], timeout=200, per_page=30)
 
 #for repo in g.get_user().get_repos():
 #    print repo.name
