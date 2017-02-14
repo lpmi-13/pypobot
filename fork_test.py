@@ -1,6 +1,5 @@
 from github import Github
-import requests, base64, re, yaml
-from pymongo import MongoClient
+import yaml
 
 with open("settings.yaml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
