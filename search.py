@@ -40,6 +40,7 @@ for repo in results:
                 print item
                 result = db.pypo.insert_one({
                     "url": repo.html_url,
+                    "repo_id": repo.id,
                     "line": item,
                     "fullText": data
                 })
