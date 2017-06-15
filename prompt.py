@@ -62,9 +62,9 @@ if (response is 'y'):
             #this is just because README files can have random file names/extensions
             r = requests.get('https://api.github.com/repos/' + repo_name + '/readme')
 
-            result = r.json()
+            repoInfo = r.json()
 
-            readmeFile = result['name']
+            readmeFile = repoInfo['name']
 
             pathToReadmeFile = FULL_PATH + '/' + readmeFile
 
