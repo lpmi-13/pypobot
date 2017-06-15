@@ -1,7 +1,9 @@
 from github import Github
 from pymongo import MongoClient
 import git, os, shutil, re, requests, time
-import yaml
+import yaml,json
+import logging
+
 
 with open("settings.yaml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
@@ -21,15 +23,12 @@ if (response is 'y'):
         print '-------------------- original:\n',item['line'],'\n\n--------------- suggested fix:\n ', suggestion,'\n\n'
         response = raw_input('Would you like to correct this? (y/n)')
         if (response is 'y'):
-            #correction_set = db.pypo.find({ 'url' : item['url'] }, { 'line' : 1 })
-
             print 'grabbing repo at %s ...'%(item['url'])
             result = g.get_repo(item['repo_id'])
             repo_name = result.full_name
             repo_owner = result.owner.login
 
             print 'creating remote fork for %s ...'%(item['url'])
-           # print 'repository id:%s'%(item['repo_id'])
 
             forked = user.create_fork(result)
 
@@ -46,10 +45,11 @@ if (response is 'y'):
 
             print 'cloning local copy of fork in %s'%(FULL_PATH)
 
-#            try:
             origin.fetch()
             origin.pull(origin.refs[0].remote_head)
 
+            indexOfRepoName = local_repo.working_dir.rfind('/')
+            local_repo_name = local_repo.working_dir[indexOfRepoName:]
 
             new_branch_name = 'typofix'
             print 'creating new feature branch %s for %s'%(new_branch_name, FULL_PATH)
@@ -59,6 +59,7 @@ if (response is 'y'):
             string_to_match = 'be send'
             regex_string = '^.*%s\s.*$' % (string_to_match)
 
+            #this is just because README files can have random file names/extensions
             r = requests.get('https://api.github.com/repos/' + repo_name + '/readme')
 
             result = r.json()
@@ -66,9 +67,6 @@ if (response is 'y'):
             readmeFile = result['name']
 
             pathToReadmeFile = FULL_PATH + '/' + readmeFile
-
-            print "readme filename is " + readmeFile
-            print "repo owner is " + repo_owner
 
             newFileArray = []
 
@@ -78,13 +76,13 @@ if (response is 'y'):
 
             with open(pathToReadmeFile, 'w') as new_readme:
                 for line in newFileArray:
-                    if (line.find('be send') > -1):
-                        found_at = [m.start() for m in re.finditer('be send', line)]
+                    if (line.find(string_to_match) > -1):
+                        found_at = [m.start() for m in re.finditer(string_to_match, line)]
 
                         #print "found some stuff at " + index
                         #add some funky find/replace logic here
 
-                        suggestion = line.replace('be send', 'be sent',len(found_at))
+                        suggestion = line.replace(string_to_match, 'be sent',len(found_at))
                         user_input = raw_input('would you like to change: \n\n {}\n\n into \n\n {}\n? (y/n)'.format(line, suggestion))
                         if (user_input is 'y'):
                             line = suggestion
@@ -98,8 +96,6 @@ if (response is 'y'):
 
             updatedReadmePath = os.path.join(local_repo.working_tree_dir, readmeFile)
 
-            #print 'I think we\'re writing to: ' + updatedReadmePath
-
             local_repo.index.add([updatedReadmePath])
             local_repo.index.commit('fix simple typo')
 
@@ -109,10 +105,9 @@ if (response is 'y'):
 
             print 'creating pull request from new branch'
 
-            #this is supposed to create a pull request in the original repo but is currently not working
-            result.create_pull('typo fix', 'fix simple typos', 'master','lpmi-13:{}'.format(new_branch_name))
+            result.create_pull(title='typo fix', body='fix simple typo', base='master', head='lpmi-13:{}'.format(new_branch_name))
 
-            print 'README has been updated! TEST COMPLETE'
+            print 'README has been updated!'
             print '\n\n\n'
 
 else:
