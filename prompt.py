@@ -1,9 +1,17 @@
 from github import Github
 from pymongo import MongoClient
-import git, os, shutil, re, requests, time
+import git, os, shutil, requests, time
 import yaml,json
 import logging
+from fileparser import parsefile
 
+be_aux_forms = [
+    'be', 'is', 'are', 'am', 'was', 'were', 'being', 'been'
+]
+
+#these are hardcoded for now but will eventually be procedurally generated
+FORM = 'send'
+CORRECTION_FORM = 'sent'
 
 with open("settings.yaml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
@@ -56,9 +64,6 @@ if (response is 'y'):
             new_branch = local_repo.create_head(new_branch_name)
             local_repo.heads.typofix.checkout()
 
-            string_to_match = 'be send'
-            regex_string = '^.*%s\s.*$' % (string_to_match)
-
             #this is just because README files can have random file names/extensions
             r = requests.get('https://api.github.com/repos/' + repo_name + '/readme')
 
@@ -74,25 +79,15 @@ if (response is 'y'):
                 for line in readme:
                     newFileArray.append(line)
 
+            #this is where the loop through all auxiliary forms happens
+            revised_array = parsefile(newFileArray, be_aux_forms, FORM, CORRECTION_FORM)
+
+            #this takes the full updated readme and writes it to the file
             with open(pathToReadmeFile, 'w') as new_readme:
-                for line in newFileArray:
-                    if (line.find(string_to_match) > -1):
-                        found_at = [m.start() for m in re.finditer(string_to_match, line)]
+                for line in revised_array:
+                    new_readme.write(line)
 
-                        #print "found some stuff at " + index
-                        #add some funky find/replace logic here
-
-                        suggestion = line.replace(string_to_match, 'be sent',len(found_at))
-                        user_input = raw_input('would you like to change: \n\n {}\n\n into \n\n {}\n? (y/n)'.format(line, suggestion))
-                        if (user_input is 'y'):
-                            line = suggestion
-                        else:
-                            continue
-                        new_readme.write(line)
-                    else:
-                        new_readme.write(line)
-
-            print 'adding new files and committing to the ' + new_branch_name + ' branch'
+            print 'adding new README and committing to the ' + new_branch_name + ' branch'
 
             updatedReadmePath = os.path.join(local_repo.working_tree_dir, readmeFile)
 
@@ -105,9 +100,10 @@ if (response is 'y'):
 
             print 'creating pull request from new branch'
 
-            result.create_pull(title='typo fix', body='fix simple typo', base='master', head='lpmi-13:{}'.format(new_branch_name))
+#            result.create_pull(title='typo fix', body='fix simple typo', base='master', head='lpmi-13:{}'.format(new_branch_name))
 
-            print 'README has been updated!'
+            print 'TEST COMPLETE'
+#            print 'README has been updated!'
             print '\n\n\n'
 
 else:
