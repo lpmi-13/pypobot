@@ -33,7 +33,7 @@ if (response is 'y'):
         suggestion = item['line'].replace(' {}'.format(FORM), ' {}'.format(CORRECTION_FORM))
         print '-------------------- original:\n',item['line'],'\n\n--------------- suggested fix:\n ', suggestion,'\n\n'
         response = raw_input('Would you like to correct this? (y/n)')
-        if (response is 'y'):
+        if (response is 'y' or 'Y'):
             print 'grabbing repo at %s ...'%(item['url'])
             result = g.get_repo(item['repo_id'])
             repo_name = result.full_name
