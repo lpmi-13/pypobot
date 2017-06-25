@@ -9,32 +9,23 @@ db = MongoClient().pypo
 
 g = Github(cfg['user'], cfg['password'], timeout=200, per_page=30)
 
-results = g.search_repositories('"be+send+ "+in:readme')
-
-write_stream = open('results.txt', 'w')
-write_stream.truncate()
+results = g.search_repositories('"is+spend+ "+in:readme')
 
 
 print 'there are %d total results' % results.totalCount
 
-write_stream.write('there are %d total results' % results.totalCount)
-write_stream.write('\n\n')
-
-string_match = 'be send'
+string_match = 'is spend'
 
 regex_string = '^.*%s\s.*$' % (string_match)
 
 for repo in results:
     r = requests.get(repo.html_url)
     if r.headers.get('status') is not int(404):
-        write_stream.write(repo.html_url)
         print 'url is ', repo.html_url
-        write_stream.write('\n')
 
         readme = repo.get_readme()
         data = base64.b64decode(readme.content)
-        write_stream.write(data)
-        write_stream.write('\n\n\n')
+
         for line in data.splitlines():
             for item in re.findall(regex_string, line):
                 print item

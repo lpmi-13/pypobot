@@ -2,16 +2,19 @@ from github import Github
 from pymongo import MongoClient
 import git, os, shutil, requests, time
 import yaml,json
-import logging
 from fileparser import parsefile
+
+from loggerPrefs import prefs
+
+prefs()
 
 be_aux_forms = [
     'be', 'is', 'are', 'am', 'was', 'were', 'being', 'been'
 ]
 
 #these are hardcoded for now but will eventually be procedurally generated
-FORM = 'send'
-CORRECTION_FORM = 'sent'
+FORM = 'spend'
+CORRECTION_FORM = 'spent'
 
 with open("settings.yaml", 'r') as ymlfile:
     cfg = yaml.load(ymlfile)
@@ -27,7 +30,7 @@ if (response is 'y'):
     documents = db.pypo.find()
     for item in documents:
         original = item['line']
-        suggestion = item['line'].replace(' send', ' sent')
+        suggestion = item['line'].replace(' {}'.format(FORM), ' {}'.format(CORRECTION_FORM))
         print '-------------------- original:\n',item['line'],'\n\n--------------- suggested fix:\n ', suggestion,'\n\n'
         response = raw_input('Would you like to correct this? (y/n)')
         if (response is 'y'):
@@ -53,58 +56,82 @@ if (response is 'y'):
 
             print 'cloning local copy of fork in %s'%(FULL_PATH)
 
-            origin.fetch()
-            origin.pull(origin.refs[0].remote_head)
+            try:
+                origin.fetch()
+                origin.pull(origin.refs[0].remote_head)
 
-            indexOfRepoName = local_repo.working_dir.rfind('/')
-            local_repo_name = local_repo.working_dir[indexOfRepoName:]
 
-            new_branch_name = 'typofix'
-            print 'creating new feature branch %s for %s'%(new_branch_name, FULL_PATH)
-            new_branch = local_repo.create_head(new_branch_name)
-            local_repo.heads.typofix.checkout()
+                indexOfRepoName = local_repo.working_dir.rfind('/')
+                local_repo_name = local_repo.working_dir[indexOfRepoName:]
 
-            #this is just because README files can have random file names/extensions
-            r = requests.get('https://api.github.com/repos/' + repo_name + '/readme')
+                new_branch_name = 'typofix'
+                print 'creating new feature branch %s for %s'%(new_branch_name, FULL_PATH)
+                new_branch = local_repo.create_head(new_branch_name)
+                local_repo.heads.typofix.checkout()
 
-            repoInfo = r.json()
+                #this is just because README files can have random file names/extensions
+                api_response = requests.get('https://api.github.com/repos/' + repo_name + '/readme')
 
-            readmeFile = repoInfo['name']
 
-            pathToReadmeFile = FULL_PATH + '/' + readmeFile
+                repoInfo = api_response.json()
 
-            newFileArray = []
+                readmeFile = repoInfo['name']
 
-            with open(pathToReadmeFile) as readme:
-                for line in readme:
-                    newFileArray.append(line)
+                pathToReadmeFile = FULL_PATH + '/' + readmeFile
 
-            #this is where the loop through all auxiliary forms happens
-            revised_array = parsefile(newFileArray, be_aux_forms, FORM, CORRECTION_FORM)
+                print 'found readme at {}'.format(pathToReadmeFile)
 
-            #this takes the full updated readme and writes it to the file
-            with open(pathToReadmeFile, 'w') as new_readme:
-                for line in revised_array:
-                    new_readme.write(line)
+                newFileArray = []
 
-            print 'adding new README and committing to the ' + new_branch_name + ' branch'
+                try:
+                    with open(pathToReadmeFile) as readme:
+                        for line in readme:
+                            newFileArray.append(line)
+                    #this is where the loop through all auxiliary forms happens
+                    revised_array = parsefile(newFileArray, be_aux_forms, FORM, CORRECTION_FORM)
 
-            updatedReadmePath = os.path.join(local_repo.working_tree_dir, readmeFile)
+                    #this takes the full updated readme and writes it to the file
+                    with open(pathToReadmeFile, 'w') as new_readme:
+                        for line in revised_array:
+                            new_readme.write(line)
 
-            local_repo.index.add([updatedReadmePath])
-            local_repo.index.commit('fix simple typo')
+                    print 'adding new README and committing to the ' + new_branch_name + ' branch'
 
-            print 'pushing back changes to remote fork'
+                    updatedReadmePath = os.path.join(local_repo.working_tree_dir, readmeFile)
 
-            origin.push(refspec='{}'.format(new_branch_name))
+                    local_repo.index.add([updatedReadmePath])
+                    local_repo.index.commit('fix simple typo')
 
-            print 'creating pull request from new branch'
 
-#            result.create_pull(title='typo fix', body='fix simple typo', base='master', head='lpmi-13:{}'.format(new_branch_name))
+                    print 'pushing back changes to remote fork'
+                    try:
+    
+                        origin.push(refspec='{}'.format(new_branch_name))
+                    except:
+    
+                        local_repo.remotes.origin.pull(refspec='master')
+                        origin.push(refspec='{}'.format(new_branch_name))
+    #                '''
+                    print 'creating pull request from new branch'
+    
+                    try:
+                        result.create_pull(title='typo fix', body='fix simple typo', base='master', head='lpmi-13:{}'.format(new_branch_name))
+                    except:
+                        import pdb;pdb.set_trace()
+    
+                    print 'README has been updated!'
+    #                '''
+    
+    #                print 'Test Complete'
+                    print '\n\n\n'
+    
+    
+                except:
+                    print 'unable to find/update readme'
+                    continue
 
-            print 'TEST COMPLETE'
-#            print 'README has been updated!'
-            print '\n\n\n'
-
+            except:
+                print 'unable to clone repo'
+                continue
 else:
     print 'okay, nevermind'
