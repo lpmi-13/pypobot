@@ -31,7 +31,6 @@ def parsefile(original_array, aux_list, form, correction_form):
 
         for line in correction_array:
             #iterate through array of lines and do a raw_input prompt
-#            print 'ANALYZING:\n{}'.format(line)
             current_index = correction_array.index(line)
 
             if (line.find(phrase) > -1):
