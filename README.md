@@ -6,7 +6,8 @@ This will eventually contain the spacy-enabled module to generate searches, as w
 Current control flow is as follows:
 
 SEARCH.PY
-- send a search query off to the [Github Search API](https://api.github.com/search/repositories?q="be send "+in:readme) for a given query (eg, "be send")
+- send a search query off to the [Github Search API](https://api.github.com/search/repositories?q=tetris+language:assembly&sort=stars&order=desc
+) for a given query (eg, "be send")
 - retrieve the results and search through the readme for each result
 - if the string is found, store identifying information for that repo in the mongo database
 
