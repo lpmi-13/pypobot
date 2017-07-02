@@ -1,7 +1,7 @@
 # pypobot
-yo dawg, we herd you like open source. So we open sourced a way for you to easily contribute to open source
+A project to speed up the process of submitting pull requests for simple typos in readme documentation
 
-This will eventually contain the spacy-enabled module to generate searches, as well as the manner in which things are pushed into the database for display in a web app (possibly?)
+This will eventually contain a spacy-enabled module to generate searches, as well as the manner in which things are pushed into the database for display in a web app (possibly?)
 
 Current control flow is as follows:
 
