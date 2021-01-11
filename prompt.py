@@ -15,7 +15,7 @@ CORRECTION_FORM = ' an '
 pattern = re.compile(FORM)
 
 with open("settings.yaml", 'r') as ymlfile:
-    cfg = yaml.load(ymlfile)
+    cfg = yaml.load(ymlfile, Loader=yaml.BaseLoader)
 
 db = MongoClient().pypo
 g = Github(cfg['user'], cfg['password'], timeout=200, per_page=30)
